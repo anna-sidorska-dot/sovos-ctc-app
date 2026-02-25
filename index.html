@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>India CTC Calculator — Sovos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
+:root{
+  --blue:#0078D6;--blue-deep:#0053A4;--blue-pale:#E8F9FF;--blue-light:#F4FCFF;
+  --navy:#0A0E33;--green:#00641F;--green-pale:#E8FFE8;--green-bright:#00861E;
+  --amber:#FA8F2D;--amber-pale:#FFF7F0;--purple:#8700A0;--red:#C35514;
+  --grey:#E0E0E0;--grey-text:#666;--grey-bg:#F8F9FA;--text:#0A0E33;--surface:#FFF;--border:#E0E0E0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:#F0F4F8;color:var(--text);min-height:100vh;}
+.topbar{background:var(--navy);padding:0 32px;height:52px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-logo{font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;color:#fff;}
+.topbar-title{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.08em;text-transform:uppercase;}
+.page-header{background:var(--blue);padding:24px 32px;color:#fff;}
+.page-header h1{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px;}
+.page-header p{font-size:12px;color:rgba(255,255,255,.75);max-width:600px;line-height:1.5;}
+.page-body{max-width:1140px;margin:0 auto;padding:24px;display:grid;grid-template-columns:310px 1fr;gap:20px;align-items:start;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:0;}
+.card-header{background:var(--blue-pale);border-bottom:2px solid var(--blue);padding:11px 18px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--blue-deep);}
+.card-body{padding:18px;}
+.field{margin-bottom:13px;}
+.field:last-child{margin-bottom:0;}
+label{display:block;font-size:10px;font-weight:600;color:var(--grey-text);margin-bottom:4px;letter-spacing:.04em;text-transform:uppercase;}
+input[type=number],input[type=text]{width:100%;background:var(--grey-bg);border:1px solid var(--border);border-radius:6px;padding:8px 11px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color .15s;}
+input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,120,214,.1);background:#fff;}
+input::placeholder{color:#bbb;}
+.hint{font-size:10px;color:#aaa;margin-top:3px;line-height:1.5;}
+.fs{font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);padding:9px 0 5px;border-bottom:1px solid var(--blue-pale);margin-bottom:11px;margin-top:3px;}
+.toggle-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;}
+.tb{flex:1;min-width:44px;padding:6px 4px;background:var(--grey-bg);border:1px solid var(--border);border-radius:5px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;color:var(--grey-text);cursor:pointer;text-align:center;transition:all .15s;}
+.tb.on{background:var(--blue-pale);border-color:var(--blue);color:var(--blue);}
+.tb:hover:not(.on){border-color:#aaa;}
+.cond{display:none;}.cond.show{display:block;}
+.calc-btn{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:12px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:6px;}
+.calc-btn:hover{background:var(--blue-deep);}
+/* output */
+.out{display:flex;flex-direction:column;gap:14px;}
+.empty{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:50px 20px;text-align:center;color:#ccc;}
+.empty .ico{font-size:34px;margin-bottom:8px;}
+.empty p{font-size:13px;}
+.res{display:none;}.res.show{display:flex;flex-direction:column;gap:14px;}
+/* badges */
+.badge{border-radius:9px;padding:11px 15px;display:flex;align-items:center;gap:11px;}
+.badge.esic{background:var(--green-pale);border:1px solid #b6ffa0;}
+.badge.noesic{background:var(--amber-pale);border:1px solid #ffd7a5;}
+.badge.nps{background:#fdf0ff;border:1px solid #f0beff;}
+.badge.nopf{background:#fff7f0;border:1px solid #ffd7a5;}
+.bdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.esic .bdot{background:var(--green-bright);}
+.noesic .bdot,.nopf .bdot{background:var(--amber);}
+.nps .bdot{background:var(--purple);}
+.badge h3{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;}
+.esic h3{color:var(--green);}.noesic h3,.nopf h3{color:var(--red);}.nps h3{color:var(--purple);}
+.badge p{font-size:11px;color:var(--grey-text);margin-top:1px;}
+/* cards row */
+.cds{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.cd{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px 14px;}
+.cd.acc{background:var(--blue-pale);border-color:rgba(0,120,214,.3);}
+.cd-lbl{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-text);margin-bottom:4px;}
+.cd-val{font-family:'Outfit',sans-serif;font-size:19px;font-weight:700;color:var(--text);}
+.acc .cd-val{color:var(--blue);}
+.cd-sub{font-size:10px;color:#aaa;margin-top:2px;}
+/* comm notice */
+.cn{border-radius:7px;padding:10px 14px;font-size:12px;line-height:1.6;border-left:3px solid var(--amber);background:var(--amber-pale);color:#7c4a00;}
+/* table */
+.tbl{background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+.tbl table{width:100%;border-collapse:collapse;}
+.tbl th{background:var(--blue);padding:9px 13px;font-family:'Outfit',sans-serif;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-align:left;border-bottom:1.5px solid #fff;}
+.tbl th.r{text-align:right;}
+.tbl td{padding:8px 13px;border-bottom:.75px solid var(--grey);font-size:12px;color:var(--grey-text);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl td.r{text-align:right;font-family:'Inter',monospace;color:var(--text);font-weight:500;}
+.tbl tr.sub td{background:var(--blue-pale);font-weight:700;color:var(--text);}
+.tbl tr.sub td.r{color:var(--blue);}
+.tbl tr.emp td{background:var(--grey-bg);}
+.tbl tr.emp td.r{color:var(--blue);}
+.tbl tr.tot td{background:var(--navy);color:#fff!important;font-weight:700;font-size:13px;border-top:2px solid var(--blue);}
+.tbl td.green{color:var(--green)!important;font-weight:600;}
+.tbl td.amber{color:var(--amber)!important;font-weight:600;}
+.tbl td.purple{color:var(--purple)!important;font-weight:600;}
+.tbl td.dim{color:#ccc!important;}
+/* ded grid */
+.dg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.dc{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px 13px;}
+.dt{font-family:'Outfit',sans-serif;font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:2px;}
+.dw{font-size:10px;color:#aaa;margin-bottom:6px;}
+.dv{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;}
+.da{font-size:10px;color:#aaa;margin-top:2px;}
+.dn{font-size:11px;color:#ccc;font-style:italic;margin-top:5px;}
+/* takehome */
+.th{background:var(--navy);border-radius:9px;padding:16px 20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.thl{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:4px;}
+.thv{font-family:'Outfit',sans-serif;font-size:19px;font-weight:700;color:#fff;}
+.thv.am{color:#FFD7A5;}
+.ths{font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;}
+/* pdf btn */
+.pdf-btn{width:100%;background:var(--green-bright);color:#fff;border:none;border-radius:8px;padding:13px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
+.pdf-btn:hover{background:var(--green);}
+.pdf-btn:disabled{background:#ccc;cursor:not-allowed;}
+/* structure info */
+.sinfo{background:var(--grey-bg);border:1px solid var(--border);border-radius:6px;padding:8px 11px;font-size:12px;color:var(--grey-text);margin-bottom:4px;}
+.sinfo.detected{color:var(--green);border-color:#b6ffa0;background:var(--green-pale);}
+.fn{font-size:10px;color:#aaa;padding:10px 13px;background:var(--surface);border:1px solid var(--border);border-radius:8px;line-height:1.7;}
+.page-footer{background:var(--navy);color:rgba(255,255,255,.35);font-size:10px;text-align:center;padding:12px;margin-top:36px;letter-spacing:.05em;}
+@media(max-width:900px){.page-body{grid-template-columns:1fr;}.cds,.th,.dg{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-logo">SOVOS</div>
+  <div class="topbar-title">India TA · Compensation Tools</div>
+</div>
+<div class="page-header">
+  <h1>India CTC Calculator</h1>
+  <p>Enter CTC to generate a full salary breakdown. Structure is auto-detected from spreadsheet rules. Download a Sovos-branded PDF annex directly.</p>
+</div>
+
+<div class="page-body">
+  <!-- INPUTS -->
+  <div>
+    <div class="card">
+      <div class="card-header">Offer Details</div>
+      <div class="card-body">
+        <div class="fs">Candidate</div>
+        <div class="field"><label>Full Name</label><input type="text" id="name" placeholder="e.g. Priya Sharma"/></div>
+        <div class="field"><label>Job Title</label><input type="text" id="role" placeholder="e.g. Partner Account Manager"/></div>
+        <div class="field"><label>Offer Date</label><input type="text" id="date" placeholder="e.g. 01 March 2026"/></div>
+
+        <div class="fs">CTC</div>
+        <div class="field"><label>Annual CTC (Rs)</label><input type="number" id="ctc" placeholder="e.g. 850000" min="0"/><div class="hint">Total Cost to Company per year</div></div>
+
+        <div class="fs">Structure</div>
+        <div class="field">
+          <label>Provident Fund (PF)</label>
+          <div class="toggle-row">
+            <button class="tb on" onclick="setPF(true,this)">Included</button>
+            <button class="tb" onclick="setPF(false,this)">Not included</button>
+          </div>
+          <div class="hint">Without PF uses different allowance structure (HRA=50% Basic, Travel=Rs19,200)</div>
+        </div>
+        <div class="field">
+          <label>NPS Employer Contribution</label>
+          <div class="toggle-row">
+            <button class="tb on" onclick="setNPS(0,this)">Not included</button>
+            <button class="tb" onclick="setNPS(15,this)">15%</button>
+            <button class="tb" onclick="setNPS(10,this)">10%</button>
+            <button class="tb" onclick="setNPS(14,this)">14%</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>ESIC Status</label>
+          <div class="sinfo" id="esicInfo">Auto-detected after you enter CTC</div>
+          <div class="hint">Auto-detected: applies when gross monthly is under Rs21,000 (CTC approx under Rs379,000)</div>
+        </div>
+
+        <div class="fs">Commission</div>
+        <div class="field">
+          <label>Frequency</label>
+          <div class="toggle-row" id="ctTog">
+            <button class="tb on" onclick="setCT('none',this)">None</button>
+            <button class="tb" onclick="setCT('monthly',this)">Monthly</button>
+            <button class="tb" onclick="setCT('bimonthly',this)">Bi-mo</button>
+            <button class="tb" onclick="setCT('quarterly',this)">Quarterly</button>
+            <button class="tb" onclick="setCT('annual',this)">Annual</button>
+          </div>
+          <div class="hint" id="ctHint">No variable pay</div>
+        </div>
+        <div class="cond" id="ctFields">
+          <div class="field"><label>Amount as</label>
+            <div class="toggle-row">
+              <button class="tb on" onclick="setCM('amount',this)">Fixed Rs</button>
+              <button class="tb" onclick="setCM('percent',this)">% of CTC</button>
+            </div>
+          </div>
+          <div class="field"><label>Annual Commission</label>
+            <input type="number" id="commA" placeholder="e.g. 100000" min="0"/>
+            <div class="hint" id="commAH">Total annual commission (Rs)</div>
+          </div>
+        </div>
+
+        <div class="fs">Bonus</div>
+        <div class="field"><label>Annual Bonus %</label><input type="number" id="bonusPct" value="8" min="0" max="100"/><div class="hint">Shown in PDF notes section</div></div>
+
+        <button class="calc-btn" onclick="calculate()">Calculate Breakdown</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="out">
+    <div class="empty" id="emptyState"><div class="ico">&#x1F4CA;</div><p>Fill in the details and click Calculate</p></div>
+    <div class="res" id="results">
+      <div id="badge"></div>
+      <div class="cds" id="cards"></div>
+      <div id="cnotice"></div>
+      <div class="tbl" id="tbl"></div>
+      <div class="dg" id="dg"></div>
+      <div class="th" id="th"></div>
+      <button class="pdf-btn" onclick="downloadPDF()">&#x2B07; Download PDF Annex</button>
+      <div class="fn">&#x26A0; Structure auto-detected from Sovos India salary spreadsheet rules. ESIC structure for CTC approx Rs379,000 or below. With PF: Basic=50% CTC, HRA=40% Basic, Travel=Rs19,600/yr. Without PF: HRA=50% Basic, Travel=Rs19,200/yr. LTA=CTC/12 when PF included and CTC>700,000; always present without PF. PF capped at Rs15,000 wage (Rs1,800/mo). Tax estimate uses new regime FY2025-26 with Rs50,000 standard deduction only. Verify with Nisha before issuing formal offers.</div>
+    </div>
+  </div>
+</div>
+<div class="page-footer">&#169; Sovos 2025 · Proprietary and Confidential · India TA Compensation Tool</div>
+
+<script>
+const {jsPDF} = window.jspdf;
+let pfIncluded=true, npsRate=0, ct='none', cm='amount';
+let lastR=null;
+
+function setPF(v,b){pfIncluded=v;document.querySelectorAll('[onclick^="setPF"]').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+function setNPS(r,b){npsRate=r;document.querySelectorAll('[onclick^="setNPS"]').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+function setCT(v,b){ct=v;document.querySelectorAll('#ctTog .tb').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  const h={none:'No variable pay',monthly:'Monthly - included in ESIC wages',bimonthly:'Bi-monthly - included in ESIC wages',quarterly:'Quarterly - excluded from ESIC',annual:'Annual - excluded from ESIC'};
+  document.getElementById('ctHint').textContent=h[v];
+  document.getElementById('ctFields').classList.toggle('show',v!=='none');}
+function setCM(v,b){cm=v;document.querySelectorAll('[onclick^="setCM"]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  document.getElementById('commAH').textContent=v==='percent'?'% of CTC (e.g. 20 = 20%)':'Total annual commission (Rs)';
+  document.getElementById('commA').placeholder=v==='percent'?'e.g. 20':'e.g. 100000';}
+
+// ── NUMBER FORMAT ──
+function fi(n){n=Math.round(n);if(!n)return'0';let s=String(Math.abs(n));if(s.length>3){let l=s.slice(-3),r=s.slice(0,-3),g=[];while(r.length>2){g.unshift(r.slice(-2));r=r.slice(0,-2);}if(r)g.unshift(r);s=g.join(',')+','+l;}return'Rs'+s;}
+function fp(n){n=Math.round(n);if(!n)return'0';let s=String(Math.abs(n));if(s.length>3){let l=s.slice(-3),r=s.slice(0,-3),g=[];while(r.length>2){g.unshift(r.slice(-2));r=r.slice(0,-2);}if(r)g.unshift(r);s=g.join(',')+','+l;}return s;}
+
+// ── SALARY CALCULATION ──
+function computeSal(ctc){
+  const basic=ctc*0.5;
+  let hra,travel,medical=15000,mobile=12000,education=2400,food=15600,statBonus=0,lta,pf_emp_a,nps_emp_a;
+  let esicElig=false,esicEmpM=0,esicEeM=0;
+
+  if(!pfIncluded){
+    // WITHOUT PF structure
+    hra=basic*0.5;  // 50% of basic
+    travel=19200;
+    lta=Math.round(ctc/12);  // always present
+    pf_emp_a=0;
+    nps_emp_a=npsRate>0?(basic/12)*(npsRate/100)*12:0;
+    const fixed=basic+hra+travel+medical+mobile+education+food+lta;
+    const cca=Math.max(0,ctc-fixed-nps_emp_a);
+    const sub=basic+hra+travel+medical+mobile+education+lta+cca+food;
+    return{basic,hra,travel,medical,mobile,education,food,statBonus:0,lta,cca,
+      pf_emp_m:0,pf_emp_a:0,pf_ee_m:0,pf_ee_a:0,
+      nps_emp_m:nps_emp_a/12,nps_emp_a,
+      esicElig:false,esicEmpM:0,esicEeM:0,sub,
+      structure: npsRate>0?'nopf_nps':'nopf'};
+  }
+
+  // WITH PF structures
+  const pf_wage=Math.min(basic/12,15000);
+  pf_emp_a=pf_wage*0.12*12;
+  const pf_ee_a=pf_wage*0.12*12;
+  nps_emp_a=npsRate>0?(basic/12)*(npsRate/100)*12:0;
+
+  // Check if ESIC structure applies (CTC <= ~379,000 based on spreadsheet)
+  // For ESIC: different component layout
+  if(ctc<=379000){
+    // ESIC structure - Sheet 2
+    hra=basic*0.05;  // ~5% of basic for low earners (actually 9600/192000 = 5%)
+    travel=0;medical=0;mobile=0;education=0;food=0;
+    statBonus=Math.round(basic*8.33/100);  // statutory bonus ~8.33% of basic
+    lta=0;
+    const gross=basic+hra+statBonus;
+    esicElig=gross/12<=21000;
+    esicEmpM=esicElig?(gross/12)*0.0325:0;
+    esicEeM=esicElig?(gross/12)*0.0075:0;
+    const cca=Math.max(0,ctc-gross-pf_emp_a-esicEmpM*12);
+    const sub=basic+hra+statBonus+cca;
+    return{basic,hra,travel,medical,mobile,education,food,statBonus,lta,cca,
+      pf_emp_m:pf_emp_a/12,pf_emp_a,pf_ee_m:pf_ee_a/12,pf_ee_a,
+      nps_emp_m:0,nps_emp_a:0,
+      esicElig,esicEmpM,esicEeM,sub,
+      structure:'esic'};
+  }
+
+  // Standard with PF (> 379K)
+  hra=basic*0.4;
+  travel=19600;
+  lta=ctc>700000?Math.round(ctc/12):0;
+  const fixed=basic+hra+travel+medical+mobile+education+food+lta;
+  const cca=Math.max(0,ctc-fixed-pf_emp_a-nps_emp_a);
+  const sub=basic+hra+travel+medical+mobile+education+lta+cca+food;
+  return{basic,hra,travel,medical,mobile,education,food,statBonus:0,lta,cca,
+    pf_emp_m:pf_emp_a/12,pf_emp_a,pf_ee_m:pf_ee_a/12,pf_ee_a,
+    nps_emp_m:nps_emp_a/12,nps_emp_a,
+    esicElig:false,esicEmpM:0,esicEeM:0,sub,
+    structure:npsRate>0?'pf_nps':'pf'};
+}
+
+// ── CALCULATE ──
+function calculate(){
+  const ctc=parseFloat(document.getElementById('ctc').value)||0;
+  if(!ctc){alert('Please enter a CTC amount.');return;}
+
+  let annualComm=0;
+  if(ct!=='none'){const raw=parseFloat(document.getElementById('commA').value)||0;annualComm=cm==='percent'?(raw/100)*ctc:raw;}
+  const pMap={monthly:12,bimonthly:6,quarterly:4,annual:1};
+  const commIncESIC=ct==='monthly'||ct==='bimonthly';
+  const commPP=ct!=='none'?annualComm/pMap[ct]:0;
+  const mCommESIC=commIncESIC?(ct==='monthly'?commPP:commPP/2):0;
+
+  const s=computeSal(ctc);
+  const grossESIC=s.sub/12+mCommESIC;
+
+  // Update ESIC info box
+  const ei=document.getElementById('esicInfo');
+  if(s.esicElig){ei.textContent=`With ESIC — Gross ${fi(s.sub/12)}/mo is under Rs21,000`;ei.className='sinfo detected';}
+  else{ei.textContent=`No ESIC — Gross ${fi(s.sub/12)}/mo exceeds Rs21,000 threshold`;ei.className='sinfo';}
+
+  // Tax estimate
+  const taxable=Math.max(0,s.sub-s.pf_ee_a-50000);
+  let tax=0;
+  if(taxable>1500000)tax=(taxable-1500000)*0.30+187500;
+  else if(taxable>1200000)tax=(taxable-1200000)*0.20+127500;
+  else if(taxable>900000)tax=(taxable-900000)*0.15+82500;
+  else if(taxable>600000)tax=(taxable-600000)*0.10+52500;
+  else if(taxable>300000)tax=(taxable-300000)*0.05;
+  const taxM=tax/12;
+  const takeHome=s.sub/12-s.pf_ee_m-s.esicEeM-taxM;
+
+  lastR={ctc,s,annualComm,ct,commPP,commIncESIC,grossESIC,takeHome,taxM,npsRate,pfIncluded,
+    name:document.getElementById('name').value||'[Candidate Name]',
+    role:document.getElementById('role').value||'[Role Title]',
+    date:document.getElementById('date').value||'[Date]',
+    bonusPct:parseFloat(document.getElementById('bonusPct').value)||8};
+
+  renderUI(lastR);
+}
+
+// ── STRUCTURE LABEL ──
+function structureLabel(R){
+  const m={
+    esic:'With ESIC',pf:'Without ESIC',pf_nps:'Without ESIC + NPS',
+    nopf:'Without PF',nopf_nps:'Without PF + NPS'
+  };
+  return m[R.s.structure]||'Standard';
+}
+
+// ── RENDER ──
+function renderUI(R){
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('results').classList.add('show');
+
+  const sc=R.s.structure;
+  const bdg={
+    esic:{c:'esic',t:'With ESIC',d:`Gross ${fi(R.s.sub/12)}/mo — ESIC covered`},
+    pf:{c:'noesic',t:'Without ESIC',d:`Gross ${fi(R.s.sub/12)}/mo — PF included`},
+    pf_nps:{c:'nps',t:'Without ESIC + NPS',d:`PF included · NPS employer ${R.npsRate}% of Basic`},
+    nopf:{c:'nopf',t:'Without PF',d:`No PF · HRA=50% Basic · Travel Rs19,200/yr`},
+    nopf_nps:{c:'nps',t:'Without PF + NPS',d:`No PF · NPS employer ${R.npsRate}% of Basic`},
+  }[sc];
+  document.getElementById('badge').innerHTML=`<div class="badge ${bdg.c}"><div class="bdot"></div><div><h3>${bdg.t}</h3><p>${bdg.d}</p></div></div>`;
+
+  document.getElementById('cards').innerHTML=`
+    <div class="cd acc"><div class="cd-lbl">Annual CTC</div><div class="cd-val">${fi(R.ctc)}</div><div class="cd-sub">Total cost to company</div></div>
+    <div class="cd"><div class="cd-lbl">Monthly Gross</div><div class="cd-val">${fi(R.s.sub/12)}</div><div class="cd-sub">Fixed earnings</div></div>
+    <div class="cd"><div class="cd-lbl">Est. Take-Home</div><div class="cd-val">${fi(R.takeHome)}</div><div class="cd-sub">After PF + ESIC + tax</div></div>`;
+
+  const fl={monthly:'Monthly',bimonthly:'Bi-monthly',quarterly:'Quarterly',annual:'Annual'}[R.ct]||'';
+  document.getElementById('cnotice').innerHTML=R.ct!='none'&&R.annualComm>0?
+    `<div class="cn"><strong>Commission (${fl}) — ${fi(R.annualComm)}/yr:</strong> ${R.commIncESIC?'<strong>INCLUDED in ESIC wages.</strong>':'<strong>EXCLUDED from ESIC, PF and NPS.</strong>'}</div>`:'';
+
+  const s=R.s;
+  const commRow=R.ct!=='none'&&R.annualComm>0?`<tr><td>Commission (${fl}) avg</td><td class="r amber">${fi(R.annualComm/12)}</td><td class="r amber">${fi(R.annualComm)}</td></tr>`:'';
+
+  // Build rows depending on structure
+  let rows='';
+  if(sc==='esic'){
+    rows=`
+      <tr><td>Basic + DA</td><td class="r">${fi(s.basic/12)}</td><td class="r">${fi(s.basic)}</td></tr>
+      <tr><td>HRA</td><td class="r">${fi(s.hra/12)}</td><td class="r">${fi(s.hra)}</td></tr>
+      <tr><td>Statutory Bonus</td><td class="r">${fi(s.statBonus/12)}</td><td class="r">${fi(s.statBonus)}</td></tr>
+      <tr><td>City Compensatory Allowance (CCA)</td><td class="r">${fi(s.cca/12)}</td><td class="r">${fi(s.cca)}</td></tr>`;
+  } else {
+    rows=`
+      <tr><td>Basic + DA</td><td class="r">${fi(s.basic/12)}</td><td class="r">${fi(s.basic)}</td></tr>
+      <tr><td>HRA</td><td class="r">${fi(s.hra/12)}</td><td class="r">${fi(s.hra)}</td></tr>
+      <tr><td>Travelling Allowance</td><td class="r">${fi(s.travel/12)}</td><td class="r">${fi(s.travel)}</td></tr>
+      <tr><td>Medical Allowance</td><td class="r">${fi(s.medical/12)}</td><td class="r">${fi(s.medical)}</td></tr>
+      <tr><td>Mobile Reimbursement</td><td class="r">${fi(s.mobile/12)}</td><td class="r">${fi(s.mobile)}</td></tr>
+      <tr><td>Education Allowance</td><td class="r">${fi(s.education/12)}</td><td class="r">${fi(s.education)}</td></tr>
+      <tr><td>Statutory Bonus</td><td class="r dim">—</td><td class="r dim">—</td></tr>
+      <tr><td>Leave Travel Allowance</td><td class="r ${s.lta?'':'dim'}">${s.lta?fi(s.lta/12):'—'}</td><td class="r ${s.lta?'':'dim'}">${s.lta?fi(s.lta):'—'}</td></tr>
+      <tr><td>City Compensatory Allowance (CCA)</td><td class="r">${fi(s.cca/12)}</td><td class="r">${fi(s.cca)}</td></tr>
+      <tr><td>Food Coupon</td><td class="r">${fi(s.food/12)}</td><td class="r">${fi(s.food)}</td></tr>
+      ${commRow}`;
+  }
+
+  document.getElementById('tbl').innerHTML=`<table>
+    <thead><tr><th>Earnings</th><th class="r">Monthly</th><th class="r">Annually</th></tr></thead>
+    <tbody>
+      ${rows}
+      <tr class="sub"><td>Sub Total</td><td class="r">${fi(s.sub/12)}</td><td class="r">${fi(s.sub)}</td></tr>
+      <tr class="emp"><td>PF – Employer Contribution</td><td class="r ${s.pf_emp_m?'green':'dim'}">${s.pf_emp_m?fi(s.pf_emp_m):'—'}</td><td class="r ${s.pf_emp_m?'green':'dim'}">${s.pf_emp_m?fi(s.pf_emp_a):'—'}</td></tr>
+      ${s.esicElig?`<tr class="emp"><td>ESIC Employer</td><td class="r amber">${fi(s.esicEmpM)}</td><td class="r amber">${fi(s.esicEmpM*12)}</td></tr>`:`<tr class="emp"><td>ESIC Employer</td><td class="r dim">—</td><td class="r dim">—</td></tr>`}
+      ${s.nps_emp_m?`<tr class="emp"><td>NPS – Employer (${R.npsRate}%)</td><td class="r purple">${fi(s.nps_emp_m)}</td><td class="r purple">${fi(s.nps_emp_a)}</td></tr>`:''}
+      <tr class="tot"><td>Total Cost to Company (CTC)</td><td class="r">${fi(R.ctc/12)}</td><td class="r">${fi(R.ctc)}</td></tr>
+    </tbody></table>`;
+
+  document.getElementById('dg').innerHTML=`
+    <div class="dc"><div class="dt" style="color:${s.pf_ee_m?'var(--green)':'#ccc'}">PF — Employee</div><div class="dw">12% Basic (≤Rs15K wage)</div>${s.pf_ee_m?`<div class="dv" style="color:var(--green)">${fi(s.pf_ee_m)}<span style="font-size:10px;color:#aaa">/mo</span></div><div class="da">${fi(s.pf_ee_a)}/yr</div>`:`<div class="dn">Not applicable</div>`}</div>
+    <div class="dc"><div class="dt" style="color:${s.pf_emp_m?'var(--blue)':'#ccc'}">PF — Employer</div><div class="dw">12% Basic — in CTC</div>${s.pf_emp_m?`<div class="dv" style="color:var(--blue)">${fi(s.pf_emp_m)}<span style="font-size:10px;color:#aaa">/mo</span></div><div class="da">${fi(s.pf_emp_a)}/yr</div>`:`<div class="dn">Not included</div>`}</div>
+    <div class="dc"><div class="dt" style="color:${s.esicElig?'var(--green)':'#ccc'}">ESIC — Employee</div><div class="dw">0.75% of gross wages</div>${s.esicElig?`<div class="dv" style="color:var(--green)">${fi(s.esicEeM)}<span style="font-size:10px;color:#aaa">/mo</span></div><div class="da">${fi(s.esicEeM*12)}/yr</div>`:`<div class="dn">Gross > Rs21K — exempt</div>`}</div>
+    <div class="dc"><div class="dt" style="color:${s.esicElig?'var(--amber)':'#ccc'}">ESIC — Employer</div><div class="dw">3.25% — additional cost</div>${s.esicElig?`<div class="dv" style="color:var(--amber)">${fi(s.esicEmpM)}<span style="font-size:10px;color:#aaa">/mo</span></div><div class="da">${fi(s.esicEmpM*12)}/yr</div>`:`<div class="dn">No ESIC cost</div>`}</div>
+    <div class="dc"><div class="dt" style="color:${s.nps_emp_m?'var(--purple)':'#ccc'}">NPS — Employer</div><div class="dw">${R.npsRate||'—'}% of Basic</div>${s.nps_emp_m?`<div class="dv" style="color:var(--purple)">${fi(s.nps_emp_m)}<span style="font-size:10px;color:#aaa">/mo</span></div><div class="da">${fi(s.nps_emp_a)}/yr</div>`:`<div class="dn">Not selected</div>`}</div>
+    <div class="dc"><div class="dt" style="color:var(--grey-text)">Total Employer Cost</div><div class="dw">PF + NPS + ESIC</div><div class="dv" style="color:var(--text)">${fi(s.pf_emp_m+s.nps_emp_m+s.esicEmpM)}<span style="font-size:10px;color:#aaa">/mo</span></div><div class="da">${fi(s.pf_emp_a+s.nps_emp_a+s.esicEmpM*12)}/yr</div></div>`;
+
+  document.getElementById('th').innerHTML=`
+    <div><div class="thl">Est. Monthly Take-Home</div><div class="thv">${fi(R.takeHome)}</div><div class="ths">After all deductions</div></div>
+    <div><div class="thl">Total Deductions/month</div><div class="thv am">${fi(s.pf_ee_m+s.esicEeM+R.taxM)}</div><div class="ths">PF + ESIC + est. tax</div></div>
+    <div><div class="thl">Annual Take-Home (est.)</div><div class="thv">${fi(R.takeHome*12)}</div><div class="ths">Indicative only</div></div>`;
+}
+
+// ── PDF GENERATION ──
+function downloadPDF(){
+  if(!lastR){alert('Please calculate first.');return;}
+  const btn=document.querySelector('.pdf-btn');
+  btn.disabled=true;btn.textContent='Generating...';
+  setTimeout(()=>{try{buildPDF(lastR);}catch(e){alert('PDF error: '+e.message);}finally{btn.disabled=false;btn.innerHTML='&#x2B07; Download PDF Annex';}},100);
+}
+
+function buildPDF(R){
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();
+  const lm=20,rm=20,cw=pw-lm-rm;
+  const NAVY=[10,14,51],BLUE=[0,120,214],BLUE_PALE=[232,249,255],BLUE_LIGHT=[244,252,255];
+  const GREEN=[0,100,31],GREEN_BG=[232,255,232],GREY=[224,224,224],GREY_TEXT=[102,102,102];
+  const WHITE=[255,255,255],AMBER=[250,143,45],AMBER_BG=[255,247,240];
+  const pb=ph-22; // page bottom (above footer)
+  let y=0;
+
+  function addFooter(){
+    doc.setFillColor(...NAVY);doc.rect(0,ph-14,pw,14,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...WHITE);
+    doc.text('SOVOS',lm,ph-5.5);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(200,200,200);
+    doc.text('© Sovos 2025. Proprietary and Confidential.',pw/2,ph-5.5,{align:'center'});
+    doc.text(`Page ${doc.internal.getCurrentPageInfo().pageNumber}`,pw-rm,ph-5.5,{align:'right'});
+  }
+
+  function checkPage(h){if(y+h>pb){addFooter();doc.addPage();y=18;}}
+
+  function secHead(title){
+    checkPage(14);
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...BLUE);
+    doc.text(title,lm,y);
+    doc.setDrawColor(...BLUE);doc.setLineWidth(0.5);doc.line(lm,y+2,lm+cw,y+2);
+    y+=8;
+  }
+
+  function bullet(text){
+    const lines=doc.splitTextToSize(text,cw-8);
+    checkPage(lines.length*5+2.5);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...NAVY);
+    doc.text('\u2022',lm+2,y);
+    lines.forEach((l,i)=>doc.text(l,lm+6,y+i*5));
+    y+=lines.length*5+2.5;
+  }
+
+  // ── HEADER ──
+  doc.setFillColor(...NAVY);doc.rect(0,0,pw,22,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(...WHITE);
+  doc.text('SOVOS',lm,14);
+  doc.setFontSize(11);doc.text('Compensation Annex — India',pw-rm,14,{align:'right'});
+  y=30;
+
+  // ── CANDIDATE INFO ──
+  doc.setFillColor(...BLUE_PALE);doc.rect(lm,y,cw,18,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...GREY_TEXT);
+  doc.text('CANDIDATE',lm+3,y+5);doc.text('DATE',lm+cw*0.6+3,y+5);
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);
+  doc.text(R.name,lm+3,y+12);doc.text(R.date,lm+cw*0.6+3,y+12);
+  doc.setFillColor(255,255,255);doc.rect(lm,y+18,cw,16,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...GREY_TEXT);
+  doc.text('ROLE',lm+3,y+23);doc.text('STRUCTURE',lm+cw*0.6+3,y+23);
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...NAVY);
+  doc.text(R.role,lm+3,y+30);doc.text(structureLabel(R),lm+cw*0.6+3,y+30);
+  doc.setDrawColor(...GREY);doc.setLineWidth(0.3);
+  doc.rect(lm,y,cw,34);doc.line(lm,y+18,lm+cw,y+18);doc.line(lm+cw*0.6,y,lm+cw*0.6,y+34);
+  y+=42;
+
+  // ── ANNEX TITLE ──
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...BLUE);
+  doc.text('ANNEX 1 - CTC BREAKDOWN',lm,y);
+  doc.setDrawColor(...BLUE);doc.setLineWidth(0.8);doc.line(lm,y+2,lm+cw,y+2);
+  y+=8;
+
+  // ── MAIN TABLE ──
+  const s=R.s,sc=s.structure;
+  let tRows=[];
+  if(sc==='esic'){
+    tRows=[
+      ['Basic + DA',fp(s.basic/12),fp(s.basic)],
+      ['HRA',fp(s.hra/12),fp(s.hra)],
+      ['Statutory Bonus',fp(s.statBonus/12),fp(s.statBonus)],
+      ['City Compensatory Allowance (CCA)',fp(s.cca/12),fp(s.cca)],
+    ];
+  } else {
+    const fl2={monthly:'Monthly',bimonthly:'Bi-monthly',quarterly:'Quarterly',annual:'Annual'}[R.ct]||'';
+    tRows=[
+      ['Basic + DA',fp(s.basic/12),fp(s.basic)],
+      ['HRA',fp(s.hra/12),fp(s.hra)],
+      ['Travelling Allowance',fp(s.travel/12),fp(s.travel)],
+      ['Medical Allowance',fp(s.medical/12),fp(s.medical)],
+      ['Mobile Reimbursement',fp(s.mobile/12),fp(s.mobile)],
+      ['Education Allowance',fp(s.education/12),fp(s.education)],
+      ['Statutory Bonus','0','0'],
+      ['Leave Travel Allowance',s.lta?fp(s.lta/12):'0',s.lta?fp(s.lta):'0'],
+      ['City Compensatory Allowance (CCA)',fp(s.cca/12),fp(s.cca)],
+      ['Food Coupon',fp(s.food/12),fp(s.food)],
+    ];
+    if(R.ct!=='none'&&R.annualComm>0) tRows.push([`Commission (${fl2})`,fp(R.annualComm/12),fp(R.annualComm)]);
+  }
+
+  const subIdx=tRows.length;
+  tRows.push(['Sub Total',fp(s.sub/12),fp(s.sub)]);
+  tRows.push(['PF - Employer Contribution',s.pf_emp_m?fp(s.pf_emp_m):'0',s.pf_emp_a?fp(s.pf_emp_a):'0']);
+  tRows.push(['ESIC Employer',s.esicElig?fp(s.esicEmpM):'0',s.esicElig?fp(s.esicEmpM*12):'0']);
+  if(s.nps_emp_m) tRows.push([`NPS - Employer (${R.npsRate}%)`,fp(s.nps_emp_m),fp(s.nps_emp_a)]);
+  const totIdx=tRows.length;
+  tRows.push(['TOTAL COST TO COMPANY (CTC)',fp(R.ctc/12),fp(R.ctc)]);
+
+  doc.autoTable({
+    startY:y,head:[['EARNINGS','MONTHLY','ANNUALLY']],body:tRows,
+    margin:{left:lm,right:rm},
+    styles:{font:'helvetica',fontSize:9,cellPadding:{top:3,bottom:3,left:4,right:4},textColor:[...NAVY],lineColor:[...GREY],lineWidth:0.2},
+    headStyles:{fillColor:[...BLUE],textColor:[...WHITE],fontStyle:'bold',lineColor:[...WHITE],lineWidth:0.5},
+    columnStyles:{0:{halign:'left'},1:{halign:'right'},2:{halign:'right'}},
+    didParseCell(data){
+      if(data.section==='body'){
+        const i=data.row.index;
+        if(i===subIdx){data.cell.styles.fillColor=[...BLUE_PALE];data.cell.styles.fontStyle='bold';}
+        if(i===totIdx){data.cell.styles.fillColor=[...NAVY];data.cell.styles.textColor=[...WHITE];data.cell.styles.fontStyle='bold';}
+        if(i>subIdx&&i<totIdx){data.cell.styles.fillColor=[248,249,250];}
+      }
+    },showHead:'everyPage'
+  });
+  y=doc.lastAutoTable.finalY+8;
+
+  // ── DEDUCTIONS ──
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...BLUE);
+  doc.text('EMPLOYEE DEDUCTIONS (Monthly)',lm,y);
+  doc.setDrawColor(...BLUE);doc.setLineWidth(0.5);doc.line(lm,y+2,lm+cw,y+2);y+=7;
+  const dedRows=[
+    ['Provident Fund (Employee)',s.pf_ee_m?'12% of Basic (<=Rs15,000 wage)':'Not applicable',s.pf_ee_m?fp(s.pf_ee_m):'0'],
+    ['ESIC (Employee)',s.esicElig?'0.75% of gross wages':'Exempt (gross > Rs21,000)',s.esicElig?fp(s.esicEeM):'0'],
+    ['Estimated Income Tax','New regime FY2025-26 (indicative)',fp(R.taxM)],
+  ];
+  doc.autoTable({
+    startY:y,head:[['Component','Rate','Monthly']],body:dedRows,
+    margin:{left:lm,right:rm},
+    styles:{font:'helvetica',fontSize:9,cellPadding:{top:3,bottom:3,left:4,right:4},textColor:[...NAVY],lineColor:[...GREY],lineWidth:0.2},
+    headStyles:{fillColor:[...BLUE],textColor:[...WHITE],fontStyle:'bold',lineColor:[...WHITE],lineWidth:0.5},
+    columnStyles:{0:{halign:'left',cellWidth:65},1:{halign:'left'},2:{halign:'right',cellWidth:25}},
+  });
+  y=doc.lastAutoTable.finalY+8;
+
+  // ── TAKE HOME BAR ──
+  checkPage(16);
+  doc.setFillColor(...NAVY);doc.rect(lm,y,cw,13,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...WHITE);
+  doc.text(`Estimated Monthly Take-Home: Rs ${fp(R.takeHome)}`,pw/2,y+8.5,{align:'center'});
+  y+=20;
+
+  // ── COMMISSION NOTE ──
+  if(R.ct!=='none'&&R.annualComm>0){
+    const fl={monthly:'monthly',bimonthly:'bi-monthly',quarterly:'quarterly',annual:'annual'}[R.ct];
+    const inc=R.commIncESIC;
+    const txt=`Rs${fp(R.annualComm)}/yr paid ${fl}. ${inc?'Included in ESIC wage calculation.':'Excluded from ESIC, PF and NPS.'} Commission is subject to income tax.`;
+    const lines=doc.splitTextToSize(txt,cw-18);
+    const bh=lines.length*5+12;
+    checkPage(bh+4);
+    doc.setFillColor(...AMBER_BG);doc.rect(lm,y,cw,bh,'F');
+    doc.setFillColor(...AMBER);doc.rect(lm,y,3,bh,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(124,74,0);
+    doc.text('COMMISSION NOTE',lm+6,y+5.5);
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+    doc.text(lines,lm+6,y+11);
+    y+=bh+5;
+  }
+
+  // ── NOTE ──
+  secHead('NOTE');
+  [
+    'Gratuity is applicable as per the Payment of Gratuity Act, 1972.',
+    'In addition to this, the company provides Health Insurance of Rs.300,000 coverage for self, spouse, and 2 children.',
+    'As a part of your total benefits package, you will also be covered under Group Accidental Insurance (3x CTC) and Group Term Life Insurance (2x CTC).',
+  ].forEach(n=>bullet(n));
+  y+=4;
+
+  // ── BONUS ──
+  checkPage(50);
+  secHead('BONUS');
+  [
+    `In addition to the above fixed CTC, you will be eligible for an annual bonus of ${R.bonusPct}%.`,
+    'Details of the AIP Bonus program will be provided with your Appointment Letter.',
+    "To qualify for the bonus, you must be an active employee on the company's payroll at the time of payout.",
+    'This bonus will be treated as taxable income, and applicable payroll taxes will be withheld.',
+  ].forEach(b=>bullet(b));
+  y+=6;
+
+  // ── DISCLAIMER ──
+  const disc='This document is indicative only. Salary structure follows Sovos India standard template. PF structures: Basic=50% CTC, HRA=40% Basic, Travel=Rs19,600/yr. Without PF: HRA=50% Basic, Travel=Rs19,200/yr. LTA=CTC/12 where applicable. PF capped at Rs15,000 wage ceiling. Tax estimate uses new regime FY2025-26 with Rs50,000 standard deduction only. Verify all figures with the India payroll team (Nisha) before issuing formal offer letters.';
+  const dl=doc.splitTextToSize(disc,cw-10);
+  const dh=dl.length*4.5+10;
+  checkPage(dh);
+  doc.setFillColor(232,249,255);doc.rect(lm,y,cw,dh,'F');
+  doc.setDrawColor(192,220,240);doc.setLineWidth(0.3);doc.rect(lm,y,cw,dh);
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...GREY_TEXT);
+  doc.text(dl,lm+5,y+5.5);
+
+  addFooter();
+  const n=(R.name||'Candidate').replace(/[^a-zA-Z0-9]/g,'_');
+  doc.save(`Sovos_CTC_Annex_${n}.pdf`);
+}
+</script>
+</body>
+</html>
