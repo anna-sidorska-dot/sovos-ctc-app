@@ -161,33 +161,39 @@ input::placeholder{color:#bbb;}
           <div class="hint">Auto-detected: applies when gross monthly is under Rs21,000 (CTC approx under Rs379,000)</div>
         </div>
 
-        <div class="fs">Commission</div>
+        <div class="fs">Variable Pay Template</div>
         <div class="field">
-          <label>Frequency</label>
-          <div class="toggle-row" id="ctTog">
-            <button class="tb on" onclick="setCT('none',this)">None</button>
-            <button class="tb" onclick="setCT('monthly',this)">Monthly</button>
-            <button class="tb" onclick="setCT('bimonthly',this)">Bi-mo</button>
-            <button class="tb" onclick="setCT('quarterly',this)">Quarterly</button>
-            <button class="tb" onclick="setCT('annual',this)">Annual</button>
-          </div>
-          <div class="hint" id="ctHint">No variable pay</div>
-        </div>
-        <div class="cond" id="ctFields">
-          <div class="field"><label>Amount as</label>
-            <div class="toggle-row">
-              <button class="tb on" onclick="setCM('amount',this)">Fixed Rs</button>
-              <button class="tb" onclick="setCM('percent',this)">% of CTC</button>
-            </div>
-          </div>
-          <div class="field"><label>Annual Commission</label>
-            <input type="number" id="commA" placeholder="e.g. 100000" min="0"/>
-            <div class="hint" id="commAH">Total annual commission (Rs)</div>
+          <label>Template Type</label>
+          <div class="toggle-row">
+            <button class="tb on" onclick="setTemplate('aip',this)">AIP Bonus</button>
+            <button class="tb" onclick="setTemplate('commission',this)">Commission</button>
           </div>
         </div>
 
-        <div class="fs">Bonus</div>
-        <div class="field"><label>Annual Bonus %</label><input type="number" id="bonusPct" value="8" min="0" max="100"/><div class="hint">Shown in PDF notes section</div></div>
+        <!-- AIP fields -->
+        <div id="aipFields">
+          <div class="field"><label>Annual Bonus %</label>
+            <input type="number" id="bonusPct" value="8" min="0" max="100"/>
+            <div class="hint">Shown in PDF bonus section</div>
+          </div>
+        </div>
+
+        <!-- Commission fields -->
+        <div class="cond" id="commFields">
+          <div class="field"><label>Annual Commission (Rs)</label>
+            <input type="number" id="commA" placeholder="e.g. 690000" min="0"/>
+            <div class="hint">Total annual commission target (LC)</div>
+          </div>
+          <div class="field"><label>Payment Frequency</label>
+            <div class="toggle-row" id="ctTog">
+              <button class="tb on" onclick="setCT('monthly',this)">Monthly</button>
+              <button class="tb" onclick="setCT('bimonthly',this)">Bi-monthly</button>
+              <button class="tb" onclick="setCT('quarterly',this)">Quarterly</button>
+              <button class="tb" onclick="setCT('annual',this)">Annual</button>
+            </div>
+            <div class="hint" id="ctHint">Monthly — included in ESIC wage calculation</div>
+          </div>
+        </div>
 
         <button class="calc-btn" onclick="calculate()">Calculate Breakdown</button>
       </div>
@@ -218,13 +224,17 @@ let lastR=null;
 
 function setPF(v,b){pfIncluded=v;document.querySelectorAll('[onclick^="setPF"]').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
 function setNPS(r,b){npsRate=r;document.querySelectorAll('[onclick^="setNPS"]').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+let templateType='aip';
+function setTemplate(v,b){
+  templateType=v;
+  document.querySelectorAll('[onclick^="setTemplate"]').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById('aipFields').style.display=v==='aip'?'block':'none';
+  document.getElementById('commFields').classList.toggle('show',v==='commission');
+}
 function setCT(v,b){ct=v;document.querySelectorAll('#ctTog .tb').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  const h={none:'No variable pay',monthly:'Monthly - included in ESIC wages',bimonthly:'Bi-monthly - included in ESIC wages',quarterly:'Quarterly - excluded from ESIC',annual:'Annual - excluded from ESIC'};
-  document.getElementById('ctHint').textContent=h[v];
-  document.getElementById('ctFields').classList.toggle('show',v!=='none');}
-function setCM(v,b){cm=v;document.querySelectorAll('[onclick^="setCM"]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  document.getElementById('commAH').textContent=v==='percent'?'% of CTC (e.g. 20 = 20%)':'Total annual commission (Rs)';
-  document.getElementById('commA').placeholder=v==='percent'?'e.g. 20':'e.g. 100000';}
+  const h={monthly:'Monthly - included in ESIC wages',bimonthly:'Bi-monthly - included in ESIC wages',quarterly:'Quarterly - excluded from ESIC',annual:'Annual - excluded from ESIC'};
+  document.getElementById('ctHint').textContent=h[v];}
 
 // ── NUMBER FORMAT ──
 function fi(n){n=Math.round(n);if(!n)return'0';let s=String(Math.abs(n));if(s.length>3){let l=s.slice(-3),r=s.slice(0,-3),g=[];while(r.length>2){g.unshift(r.slice(-2));r=r.slice(0,-2);}if(r)g.unshift(r);s=g.join(',')+','+l;}return'Rs'+s;}
@@ -299,11 +309,14 @@ function calculate(){
   const ctc=parseFloat(document.getElementById('ctc').value)||0;
   if(!ctc){alert('Please enter a CTC amount.');return;}
 
+  // Commission — only if commission template selected
   let annualComm=0;
-  if(ct!=='none'){const raw=parseFloat(document.getElementById('commA').value)||0;annualComm=cm==='percent'?(raw/100)*ctc:raw;}
+  if(templateType==='commission'){
+    annualComm=parseFloat(document.getElementById('commA').value)||0;
+  }
   const pMap={monthly:12,bimonthly:6,quarterly:4,annual:1};
   const commIncESIC=ct==='monthly'||ct==='bimonthly';
-  const commPP=ct!=='none'?annualComm/pMap[ct]:0;
+  const commPP=annualComm>0?annualComm/pMap[ct]:0;
   const mCommESIC=commIncESIC?(ct==='monthly'?commPP:commPP/2):0;
 
   const s=computeSal(ctc);
@@ -325,7 +338,7 @@ function calculate(){
   const taxM=tax/12;
   const takeHome=s.sub/12-s.pf_ee_m-s.esicEeM-taxM;
 
-  lastR={ctc,s,annualComm,ct,commPP,commIncESIC,grossESIC,takeHome,taxM,npsRate,pfIncluded,
+  lastR={ctc,s,annualComm,ct,commPP,commIncESIC,grossESIC,takeHome,taxM,npsRate,pfIncluded,templateType,
     name:document.getElementById('name').value||'[Candidate Name]',
     role:document.getElementById('role').value||'[Role Title]',
     date:document.getElementById('date').value||'[Date]',
@@ -363,9 +376,16 @@ function renderUI(R){
     <div class="cd"><div class="cd-lbl">Monthly Gross</div><div class="cd-val">${fi(R.s.sub/12)}</div><div class="cd-sub">Fixed earnings</div></div>
     <div class="cd"><div class="cd-lbl">Est. Take-Home</div><div class="cd-val">${fi(R.takeHome)}</div><div class="cd-sub">After PF + ESIC + tax</div></div>`;
 
-  const fl={monthly:'Monthly',bimonthly:'Bi-monthly',quarterly:'Quarterly',annual:'Annual'}[R.ct]||'';
-  document.getElementById('cnotice').innerHTML=R.ct!='none'&&R.annualComm>0?
-    `<div class="cn"><strong>Commission (${fl}) — ${fi(R.annualComm)}/yr:</strong> ${R.commIncESIC?'<strong>INCLUDED in ESIC wages.</strong>':'<strong>EXCLUDED from ESIC, PF and NPS.</strong>'}</div>`:'';
+  const fl={monthly:'Monthly',bimonthly:'Bi-monthly',quarterly:'Quarterly',annual:'Annual'}[R.ct]||'Monthly';
+  if(R.templateType==='commission'&&R.annualComm>0){
+    document.getElementById('cnotice').innerHTML=`<div class="cn">
+      <strong>Variable Incentive (${fl}) — ${fi(R.annualComm)}/yr target:</strong>
+      Commission paid ${fl.toLowerCase()} — ${R.commIncESIC?'<strong>included in ESIC wage calculation.</strong>':'<strong>excluded from ESIC, PF and NPS.</strong>'}
+      This will appear as a Variable Incentive section in the PDF.
+    </div>`;
+  } else {
+    document.getElementById('cnotice').innerHTML='';
+  }
 
   const s=R.s;
   const commRow=R.ct!=='none'&&R.annualComm>0?`<tr><td>Commission (${fl}) avg</td><td class="r amber">${fi(R.annualComm/12)}</td><td class="r amber">${fi(R.annualComm)}</td></tr>`:'';
@@ -487,8 +507,11 @@ function buildPDF(R){
   y+=42;
 
   // ── ANNEX TITLE ──
+  const annexTitle = R.templateType==='commission'
+    ? 'ANNEX 1 - CTC BREAKDOWN - COMMISSION BASED ROLES'
+    : 'ANNEX 1 - CTC BREAKDOWN';
   doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...BLUE);
-  doc.text('ANNEX 1 - CTC BREAKDOWN',lm,y);
+  doc.text(annexTitle,lm,y);
   doc.setDrawColor(...BLUE);doc.setLineWidth(0.8);doc.line(lm,y+2,lm+cw,y+2);
   y+=8;
 
@@ -569,42 +592,54 @@ function buildPDF(R){
   doc.text(`Estimated Monthly Take-Home: Rs ${fp(R.takeHome)}`,pw/2,y+8.5,{align:'center'});
   y+=20;
 
-  // ── COMMISSION NOTE ──
-  if(R.ct!=='none'&&R.annualComm>0){
-    const fl={monthly:'monthly',bimonthly:'bi-monthly',quarterly:'quarterly',annual:'annual'}[R.ct];
-    const inc=R.commIncESIC;
-    const txt=`Rs${fp(R.annualComm)}/yr paid ${fl}. ${inc?'Included in ESIC wage calculation.':'Excluded from ESIC, PF and NPS.'} Commission is subject to income tax.`;
-    const lines=doc.splitTextToSize(txt,cw-18);
-    const bh=lines.length*5+12;
-    checkPage(bh+4);
-    doc.setFillColor(...AMBER_BG);doc.rect(lm,y,cw,bh,'F');
-    doc.setFillColor(...AMBER);doc.rect(lm,y,3,bh,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(124,74,0);
-    doc.text('COMMISSION NOTE',lm+6,y+5.5);
-    doc.setFont('helvetica','normal');doc.setFontSize(8.5);
-    doc.text(lines,lm+6,y+11);
-    y+=bh+5;
-  }
+  // ── COMMISSION NOTE (ESIC flag — only for AIP with commission in table) ──
+  // Not used for commission template — variable incentive is handled separately below
 
-  // ── NOTE ──
+  // ── NOTE ── (same for both templates)
   secHead('NOTE');
   [
     'Gratuity is applicable as per the Payment of Gratuity Act, 1972.',
     'In addition to this, the company provides Health Insurance of Rs.300,000 coverage for self, spouse, and 2 children.',
     'As a part of your total benefits package, you will also be covered under Group Accidental Insurance (3x CTC) and Group Term Life Insurance (2x CTC).',
   ].forEach(n=>bullet(n));
-  y+=4;
-
-  // ── BONUS ──
-  checkPage(50);
-  secHead('BONUS');
-  [
-    `In addition to the above fixed CTC, you will be eligible for an annual bonus of ${R.bonusPct}%.`,
-    'Details of the AIP Bonus program will be provided with your Appointment Letter.',
-    "To qualify for the bonus, you must be an active employee on the company's payroll at the time of payout.",
-    'This bonus will be treated as taxable income, and applicable payroll taxes will be withheld.',
-  ].forEach(b=>bullet(b));
   y+=6;
+
+  // ── BONUS or VARIABLE INCENTIVE depending on template ──
+  checkPage(50);
+  if(R.templateType==='commission'){
+    // Commission template — Variable Incentive section
+    const fl={monthly:'monthly',bimonthly:'bi-monthly',quarterly:'quarterly',annual:'annual'}[R.ct]||'monthly';
+    const inc=R.commIncESIC;
+    secHead('Variable Incentive:');
+    const viText=`In addition to fixed CTC, you will also be entitled to commission target (LC) Annual amounting to ${fp(R.annualComm)} INR. These incentives will be paid ${fl} and are tied to your individual performance targets decided on ${fl} basis. To be eligible for the incentive component, you must be an active employee on the company payroll at the time of payout.`;
+    const viLines=doc.splitTextToSize(viText,cw-4);
+    checkPage(viLines.length*5+6);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...NAVY);
+    doc.text(viLines,lm,y);
+    y+=viLines.length*5+6;
+    // ESIC note if commission is monthly/bimonthly
+    if(inc){
+      const esicNote=`Note: Commission paid ${fl} is included in the ESIC wage calculation where applicable.`;
+      const en=doc.splitTextToSize(esicNote,cw-10);
+      const eh=en.length*4.5+8;
+      checkPage(eh+4);
+      doc.setFillColor(...AMBER_BG);doc.rect(lm,y,cw,eh,'F');
+      doc.setFillColor(...AMBER);doc.rect(lm,y,2,eh,'F');
+      doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(124,74,0);
+      doc.text(en,lm+5,y+5);
+      y+=eh+5;
+    }
+  } else {
+    // AIP template — standard Bonus section
+    secHead('BONUS');
+    [
+      `In addition to the above fixed CTC, you will be eligible for an annual bonus of ${R.bonusPct}%.`,
+      'Details of the AIP Bonus program will be provided with your Appointment Letter.',
+      "To qualify for the bonus, you must be an active employee on the company's payroll at the time of payout.",
+      'This bonus will be treated as taxable income, and applicable payroll taxes will be withheld.',
+    ].forEach(b=>bullet(b));
+    y+=6;
+  }
 
   // ── DISCLAIMER ──
   const disc='This document is indicative only. Salary structure follows Sovos India standard template. PF structures: Basic=50% CTC, HRA=40% Basic, Travel=Rs19,600/yr. Without PF: HRA=50% Basic, Travel=Rs19,200/yr. LTA=CTC/12 where applicable. PF capped at Rs15,000 wage ceiling. Tax estimate uses new regime FY2025-26 with Rs50,000 standard deduction only. Verify all figures with the India payroll team (Nisha) before issuing formal offer letters.';

@@ -361,7 +361,7 @@ def generate_pdf_bytes(data):
 
 @app.route('/')
 def index():
-    with open('templates/index.html', 'r') as f:
+    with open('index.html', 'r') as f:
         return f.read()
 
 @app.route('/generate', methods=['POST'])
